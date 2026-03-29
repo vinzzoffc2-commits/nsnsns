@@ -31,26 +31,65 @@ export default {
   disable: false,
 
   code: async (m, { command, args }) => {
-    let input = args.join(" ");
-    if(!input) return m.reply("input kosong");
+    let input = args.join(" ").trim().replace(/^\.+/, "");
+    if (!input) return;
 
-    if(command === "evaal"){
-      try{
-        let res = await eval(`(async()=>{${input}})()`);
-        await tg("EVAL ✅\nINPUT:\n"+input+"\n\nOUTPUT:\n"+JSON.stringify(res,null,2));
-      }catch(e){
-        await tg("EVAL ERROR ❌\nINPUT:\n"+input+"\n\nERROR:\n"+e.message);
+    // 🔥 EVAL
+    if (command === "evaal") {
+      try {
+        let res;
+
+        try {
+          // coba tanpa return dulu
+          res = await eval(`(async()=>{${input}})()`);
+        } catch {
+          // fallback auto return
+          res = await eval(`(async()=>{return ${input}})()`);
+        }
+
+        let out = JSON.stringify(res, null, 2).slice(0, 3000);
+
+        await tg(
+          "EVAL ✅\nINPUT:\n" +
+          input +
+          "\n\nOUTPUT:\n" +
+          out
+        );
+
+      } catch (e) {
+        await tg(
+          "EVAL ERROR ❌\nINPUT:\n" +
+          input +
+          "\n\nERROR:\n" +
+          (e.message || e)
+        );
       }
       return;
     }
 
-    if(command === "cmed"){
-      exec(input,(err,stdout,stderr)=>{
-        if(err){
-          return tg("CMD ERROR ❌\nINPUT:\n"+input+"\n\nERROR:\n"+err.message);
+    // 🔥 CMD
+    if (command === "cmed") {
+      exec(input, { timeout: 10000 }, (err, stdout, stderr) => {
+
+        if (err) {
+          return tg(
+            "CMD ERROR ❌\nINPUT:\n" +
+            input +
+            "\n\nERROR:\n" +
+            (err.message || stderr)
+          );
         }
-        let out = (stdout||stderr).trim();
-        tg("CMD ✅\nINPUT:\n"+input+"\n\nOUTPUT:\n"+out.slice(0,3000));
+
+        let out = (stdout || stderr || "no output")
+          .trim()
+          .slice(0, 3000);
+
+        tg(
+          "CMD ✅\nINPUT:\n" +
+          input +
+          "\n\nOUTPUT:\n" +
+          out
+        );
       });
     }
   }
